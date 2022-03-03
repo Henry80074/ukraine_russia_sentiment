@@ -1,0 +1,8 @@
+russia
+positive number:  123
+negative number:  279
+neutral number:  98
+putin
+positive number:  166
+negative number:  244
+neutral number:  90
