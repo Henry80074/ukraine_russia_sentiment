@@ -79,12 +79,11 @@ def get_sentiment(tweets, date):
 
 def compile_data():
     geo = "55.7558,37.6173,300km"
-    keyword = "russian OR putin OR Россия"
-    no_of_tweets = 10
-    today = datetime.datetime.today()
+    keyword = "putin OR Путин"
+    no_of_tweets = 100
+    today = datetime.datetime.today()# - datetime.timedelta(days=4)
     end_date = today.strftime('%Y-%m-%d')
     start_date = (today - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
-
     tweets = get_tweets(geo=geo, keyword=keyword, number=no_of_tweets, start_date=start_date, end_date=end_date)
     data = get_sentiment(tweets, end_date)
     df = pd.DataFrame(data, index=[0])
