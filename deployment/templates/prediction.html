@@ -3,21 +3,25 @@
 <body>
 <div class="dash">
     <div class="graph">
-        <div id='bitcoin_price' class='chart'></div>
+        <div id='pie_chart' class='chart'></div>
     </div>
     <div class="graph">
-        <div id='chart' class='chart'></div>
+        <div id='week_pie_chart' class='chart'></div>
     </div>
-    <div class="graph">
-        <div id='rolling_predict' class='chart'></div>
+     <div class="graph">
+        <div id='line_fig' class='chart'></div>
+    </div>
+        <div>Text</div>
     </div>
 </div>
 <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
 <script type='text/javascript'>
-  var graphs1 = {{graphJSON | safe}};
-  var graphs2 = {{graphJSON2 | safe}};
-  Plotly.plot('chart',graphs1,{});
-  Plotly.plot('bitcoin_price',graphs2,{});
+  var graphs1 = {{pie_fig | safe}};
+  var graphs2 = {{week_pie_fig | safe}};
+  var graphs3 = {{line_fig | safe}};
+  Plotly.plot('pie_chart',graphs1,{});
+  Plotly.plot('week_pie_chart',graphs2,{});
+  Plotly.plot('line_fig',graphs3,{});
 </script>
 </body>
 {% endblock content %}

@@ -25,13 +25,22 @@ def dashboard():
     df = df.sort_values(by="date")
     # filter data for pie chart
     filtered_df = df.filter(items=['negative', 'positive', 'neutral'])
-    sentiment_list = filtered_df.iloc[[-1]].values[0]
+    sentiment_list_day = filtered_df.iloc[[-1]].values[0]
+    week_df = filtered_df.iloc[-7:]
+    negative_week = week_df['negative'].sum()
+    positive_week = week_df['positive'].sum()
+    neutral_week = week_df['neutral'].sum()
+    sentiment_list_week = [negative_week, positive_week, neutral_week]
     # plot line chart
-    line_fig = px.line(df, x="date", y="negative", width=800, height=450, title="Longitudinal Negative Sentiment")
+    line_fig = px.line(df, x="date", y="negative",title="Longitudinal Negative Sentiment")
     # plot pie chart
-    pie_fig = go.Figure(data=[go.Pie(labels=['negative', 'positive', 'neutral'], values=sentiment_list)])
-    pie_fig.update_layout(title_text="Today's Sentiment",)
+    pie_fig = go.Figure(data=[go.Pie(labels=['negative', 'positive', 'neutral'], values=sentiment_list_day)])
+    pie_fig.update_layout(title_text="Today's Sentiment")
+    # plot week pie chart
+    pie_week_fig = go.Figure(data=[go.Pie(labels=['negative', 'positive', 'neutral'], values=sentiment_list_week)])
+    pie_week_fig.update_layout(title_text="This Week's Sentiment", )
     # for render
-    graph_json = json.dumps(line_fig, cls=plotly.utils.PlotlyJSONEncoder)
-    graph_json2 = json.dumps(pie_fig, cls=plotly.utils.PlotlyJSONEncoder)
-    return render_template("prediction.html", graphJSON=graph_json, graphJSON2=graph_json2)
+    line_json = json.dumps(line_fig, cls=plotly.utils.PlotlyJSONEncoder)
+    pie_json = json.dumps(pie_fig, cls=plotly.utils.PlotlyJSONEncoder)
+    pie_week_json = json.dumps(pie_week_fig, cls=plotly.utils.PlotlyJSONEncoder)
+    return render_template("prediction.html", line_fig=line_json, pie_fig=pie_json, week_pie_fig=pie_week_json)
