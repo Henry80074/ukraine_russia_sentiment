@@ -8,7 +8,7 @@ from passwords import access_token, access_token_secret, bearer, api_key, api_se
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import deepl
-nltk.download('vader_lexicon')
+#nltk.download('vader_lexicon')
 # Authentication
 project_api_key = api_key
 project_api_secret = api_secret
@@ -21,6 +21,7 @@ auth = tweepy.OAuthHandler(project_api_key, project_api_secret)
 auth.set_access_token(project_access_token, project_access_secret)
 api = tweepy.API(auth, wait_on_rate_limit=True)
 translator = deepl.Translator(deepl_api_key)
+
 
 # Sentiment Analysis
 def percentage(part, whole):
@@ -44,7 +45,7 @@ def get_sentiment(tweets, date):
     positive_list = []
     for tweet in tweets:
         print(tweet.full_text)
-        text = str(translator.translate_text(tweet.full_text, target_lang='en'))
+        text = str(translator.translate_text(tweet.full_text, target_lang='EN_GB'))
         if 'RT @' not in text:
             tweet_list.append(text)
             analysis = TextBlob(text)
@@ -99,35 +100,34 @@ class ModelData:
         self.start_date = start_date
         self.end_date = end_date
         self.tweets = None
+        self.df = None
 
     def get_data(self):
         self.tweets = get_tweets(self.geo, self.keyword, self.number, self.start_date, self.end_date)
 
-    def create_csv(self):
+    def data_to_csv(self):
         english_tweet_list = []
         russian_tweet_list = []
         for tweet in self.tweets:
             russian_tweet = tweet.full_text
-            english_tweet = str(translator.translate_text(russian_tweet, target_lang='en'))
-            if 'RT @' not in english_tweet:
+            english_tweet = str(translator.translate_text(russian_tweet, target_lang='EN-GB'))
+            if 'RT @' not in english_tweet and russian_tweet not in russian_tweet_list:
                 english_tweet_list.append(english_tweet)
                 russian_tweet_list.append(tweet.full_text)
 
-        data = {"tweet_id": [x for x in range(len(english_tweet_list))], "russian": [x for x in russian_tweet_list], "english": [x for x in english_tweet_list], "sentiment": ["unassigned" for i in range(len(english_tweet_list))]}
-        df = pd.DataFrame(data)
-        print(df)
-        df.to_csv('manual_classification_data.csv', mode='a', index=False)
-
-class SentimentModel:
-
-    def __init__(self, name):
-        self.name = name
+        data = {"russian": [x for x in russian_tweet_list], "english": [x for x in english_tweet_list], "sentiment": ["unassigned" for i in range(len(english_tweet_list))]}
+        self.df = pd.DataFrame(data)
+        print(self.df)
+        try:
+            self.df.to_csv('manual_classification_data.csv', mode='a', index=True,  header=False)
+        except:
+            self.df.csv('manual_classification_data.csv', mode='w', index=True,  header=True)
 
 #compile_data()
 # today = datetime.datetime.today()
 # model_data = ModelData(geo="55.7558,37.6173,300km", keyword="putin OR Путин", number=100,
-#                  start_date=(today - datetime.timedelta(days=6)).strftime('%Y-%m-%d'), end_date=today.strftime('%Y-%m-%d'))
+#                  start_date=(today - datetime.timedelta(days=1)).strftime('%Y-%m-%d'), end_date=today.strftime('%Y-%m-%d'))
 #
 #
 # model_data.get_data()
-# model_data.create_csv()
+# model_data.data_to_csv()
