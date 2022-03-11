@@ -1,14 +1,21 @@
 import datetime
 import json
+import re
 import sqlite3
 import pandas as pd
+from google_trans_new import google_translator
+from nltk import word_tokenize
+from nltk.corpus import stopwords
 from textblob import TextBlob
 import tweepy
 from passwords import access_token, access_token_secret, bearer, api_key, api_secret, deep_ai
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import deepl
+import google_trans_new
+from string import ascii_letters, digits, whitespace
 #nltk.download('vader_lexicon')
+nltk.download('punkt')
+nltk.download('stopwords')
 # Authentication
 project_api_key = api_key
 project_api_secret = api_secret
@@ -20,8 +27,8 @@ deepl_api_key = deep_ai
 auth = tweepy.OAuthHandler(project_api_key, project_api_secret)
 auth.set_access_token(project_access_token, project_access_secret)
 api = tweepy.API(auth, wait_on_rate_limit=True)
-translator = deepl.Translator(deepl_api_key)
-
+#translator = deepl.Translator(deepl_api_key)
+translator = google_translator()
 
 # Sentiment Analysis
 def percentage(part, whole):
@@ -30,7 +37,8 @@ def percentage(part, whole):
 
 def get_tweets(geo, keyword, number, start_date, end_date):
     date_string = f"since:{start_date} until:{end_date}"
-    tweets = tweepy.Cursor(api.search_tweets, q=("#" + keyword + " " + date_string), lang="ru", geocode=geo, tweet_mode='extended').items(number)
+    tweets = tweepy.Cursor(api.search_tweets, q=("#" + keyword + " " + date_string + " -is:retweet" + " -is:reply")
+                           , lang="ru", tweet_mode='extended').items(number)
     return tweets
 
 
@@ -45,7 +53,7 @@ def get_sentiment(tweets, date):
     positive_list = []
     for tweet in tweets:
         print(tweet.full_text)
-        text = str(translator.translate_text(tweet.full_text, target_lang='EN_GB'))
+        text = str(translator.translate_text(tweet.full_text, lang_tgt='en'))
         if 'RT @' not in text:
             tweet_list.append(text)
             analysis = TextBlob(text)
@@ -91,6 +99,23 @@ def compile_data():
     df.to_sql('sentiment_table', conn, if_exists='append', index=False)
 
 
+def clean_text(text, russian):
+    cyrillic_letters = u"абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+    text = text.lower()
+    # Removes all mentions (@username) from the tweet since it is of no use to us
+    text = re.sub(r'(@[A-Za-z0-9_]+)', '', text)
+
+    # Removes any link in the text
+    text = re.sub('http://\S+|https://\S+', '', text)
+    text = re.sub(r'[0-9]+', '', text)
+
+    # Only considers the part of the string with char between a to z or digits and whitespace characters
+    # Basically removes punctuation
+    if russian:
+        text = re.sub(r'[^\w\s]', '', text)
+    # cleans russin
+    return text
+
 class ModelData:
 
     def __init__(self, geo, keyword, number, start_date, end_date):
@@ -109,11 +134,11 @@ class ModelData:
         english_tweet_list = []
         russian_tweet_list = []
         for tweet in self.tweets:
-            russian_tweet = tweet.full_text
-            english_tweet = str(translator.translate_text(russian_tweet, target_lang='EN-GB'))
-            if 'RT @' not in english_tweet and russian_tweet not in russian_tweet_list:
+            russian_tweet = clean_text(str(tweet.full_text), russian=True)
+            english_tweet = translator.translate(russian_tweet, lang_tgt='en')
+            if 'RT @' not in english_tweet and english_tweet not in english_tweet_list:
                 english_tweet_list.append(english_tweet)
-                russian_tweet_list.append(tweet.full_text)
+                russian_tweet_list.append(russian_tweet)
 
         data = {"russian": [x for x in russian_tweet_list], "english": [x for x in english_tweet_list], "sentiment": ["unassigned" for i in range(len(english_tweet_list))]}
         self.df = pd.DataFrame(data)
@@ -126,7 +151,7 @@ class ModelData:
 #compile_data()
 # today = datetime.datetime.today()
 # model_data = ModelData(geo="55.7558,37.6173,300km", keyword="putin OR Путин", number=100,
-#                  start_date=(today - datetime.timedelta(days=1)).strftime('%Y-%m-%d'), end_date=today.strftime('%Y-%m-%d'))
+#                  start_date=(today - datetime.timedelta(days=7)).strftime('%Y-%m-%d'), end_date=today.strftime('%Y-%m-%d'))
 #
 #
 # model_data.get_data()
