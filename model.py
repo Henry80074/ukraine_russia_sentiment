@@ -29,11 +29,11 @@ class SentimentModel:
 
     def build_model(self):
         if self.tokenizer:
-            embedding_vector_length = 32
+            embedding_vector_length = 20
             model = Sequential()
-            model.add(Embedding(len(self.tokenizer.word_index) + 1, embedding_vector_length, input_length=60))
+            model.add(Embedding(len(self.tokenizer.word_index) + 1, embedding_vector_length, input_length=40))
             model.add(SpatialDropout1D(0.25))
-            model.add(LSTM(15, dropout=0.5, recurrent_dropout=0.5))
+            model.add(LSTM(5))
             model.add(Dropout(0.2))
             model.add(Dense(3, activation='sigmoid'))
             model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -45,6 +45,7 @@ class SentimentModel:
     def preprocess_training_data(self):
 
         self.sentiment_label = self.df.sentiment.factorize()
+        print(self.sentiment_label)
         tweets = self.df['russian'].values
         # convert tweets to strings
         tweets = [str(x) for x in tweets]
@@ -59,7 +60,7 @@ class SentimentModel:
         # replace the words with their assigned numbers
         encoded_docs = self.tokenizer.texts_to_sequences(tweets)
         # makes all sentences same size
-        self.padded_sequence = pad_sequences(encoded_docs, maxlen=60)
+        self.padded_sequence = pad_sequences(encoded_docs, maxlen=40)
         return self.padded_sequence
 
     def preprocess_prediction_data(self):
@@ -76,13 +77,15 @@ class SentimentModel:
         # replace the words with their assigned numbers
         encoded_docs = self.tokenizer.texts_to_sequences(tweets)
         # makes all sentences same size
-        self.padded_sequence = pad_sequences(encoded_docs, maxlen=60)
+        self.padded_sequence = pad_sequences(encoded_docs, maxlen=40)
 
     def fit_data(self):
         # Separate the test data
-        x, x_test, y, y_test = train_test_split(self.padded_sequence, self.sentiment_label[0], test_size=0.15, shuffle=True)
-        # Split the remaining data to train and validation
-        x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.15, shuffle=True)
+        # x, x_test, y, y_test = train_test_split(self.padded_sequence, self.sentiment_label[0], test_size=0.25, shuffle=True)
+        # # Split the remaining data to train and validation
+        # x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.25, shuffle=True)
+        x_train,  x_val, y_train, y_val = train_test_split(self.padded_sequence, self.sentiment_label[0], test_size=0.2,
+                                                shuffle=True)
         # Training the Keras model
         model_checkpoint_callback = ModelCheckpoint(
             filepath=model_dir,
@@ -91,7 +94,7 @@ class SentimentModel:
             mode='max',
             save_best_only=True)
         if self.model:
-            self.history = self.model.fit(x=x_train, y=y_train, batch_size=2, epochs=20, validation_data=(x_val, y_val), callbacks=[model_checkpoint_callback])
+            self.history = self.model.fit(x=x_train, y=y_train, batch_size=1, epochs=20, validation_data=(x_val, y_val), callbacks=[model_checkpoint_callback])
             self.model.save(model_dir)
         else:
             print("No model found")

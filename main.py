@@ -37,7 +37,7 @@ def percentage(part, whole):
 
 def get_tweets(geo, keyword, number, start_date, end_date):
     date_string = f"since:{start_date} until:{end_date}"
-    tweets = tweepy.Cursor(api.search_tweets, q=("#" + keyword + " " + date_string + " -is:retweet" + " -is:reply")
+    tweets = tweepy.Cursor(api.search_tweets, q=("#" + keyword + " " + date_string + " AND exclude:retweets AND exclude:replies")
                            , lang="ru", tweet_mode='extended').items(number)
     return tweets
 
@@ -53,8 +53,9 @@ def get_sentiment(tweets, date):
     positive_list = []
     for tweet in tweets:
         print(tweet.full_text)
-        text = str(translator.translate_text(tweet.full_text, lang_tgt='en'))
+        text = str(translator.translate(tweet.full_text, lang_tgt='en'))
         if 'RT @' not in text:
+            text = clean_text(text, False)
             tweet_list.append(text)
             analysis = TextBlob(text)
             score = SentimentIntensityAnalyzer().polarity_scores(text)
@@ -90,7 +91,7 @@ def compile_data():
     keyword = "putin OR Путин"
     no_of_tweets = 100
     today = datetime.datetime.today()# - datetime.timedelta(days=4)
-    end_date = today.strftime('%Y-%m-%d')
+    end_date = (today - datetime.timedelta(days=0)).strftime('%Y-%m-%d') #today.strftime('%Y-%m-%d')
     start_date = (today - datetime.timedelta(days=1)).strftime('%Y-%m-%d')
     tweets = get_tweets(geo=geo, keyword=keyword, number=no_of_tweets, start_date=start_date, end_date=end_date)
     data = get_sentiment(tweets, end_date)
@@ -148,7 +149,7 @@ class ModelData:
         except:
             self.df.csv('manual_classification_data.csv', mode='w', index=True,  header=True)
 
-#compile_data()
+compile_data()
 # today = datetime.datetime.today()
 # model_data = ModelData(geo="55.7558,37.6173,300km", keyword="putin OR Путин", number=100,
 #                  start_date=(today - datetime.timedelta(days=7)).strftime('%Y-%m-%d'), end_date=today.strftime('%Y-%m-%d'))
